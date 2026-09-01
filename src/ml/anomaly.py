@@ -47,12 +47,14 @@ class AnomalyDetector:
         if X.ndim == 1:
             X = X.reshape(1, -1)
 
-        # decision_function: lower means more anomalous (negative for outliers)
+        # decision_function: positive for inliers, negative for outliers
         raw_scores = self.model.decision_function(X)
-        
-        # Logistic sigmoid normalization: raw ~0 gives 0.5, raw > 0.15 gives < 0.25 (normal)
-        # raw < -0.15 gives > 0.75 (anomalous)
-        normalized_scores = 1.0 / (1.0 + np.exp(raw_scores * 6.0))
+
+        # Calibrated logistic sigmoid normalization:
+        # normal samples (> 0.10) map to ~0.05-0.15
+        # borderline samples (~0.0) map to ~0.35-0.50
+        # severe anomalies (< -0.15) map to ~0.75-0.95
+        normalized_scores = 1.0 / (1.0 + np.exp((raw_scores + 0.05) * 12.0))
         return np.round(np.clip(normalized_scores, 0.0, 1.0), 3)
 
     def save(self, filepath: Path) -> None:

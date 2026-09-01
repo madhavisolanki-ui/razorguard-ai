@@ -1,0 +1,91 @@
+{
+  "scenario_a_legitimate": {
+    "scenario": "A. Legitimate Transaction",
+    "deterministic_score": 25.7,
+    "investigation_score": 25.7,
+    "deterministic_action": "ALLOW",
+    "investigation_action": "ALLOW",
+    "tools_called": [
+      "get_account_activity"
+    ],
+    "findings": [
+      "Isolated transaction topology with no coordinated multi-account syndicate relationships detected.",
+      "Account Profile: Lifetime spend INR 12,364.71 across 1 transactions."
+    ],
+    "explanation": "Transaction evaluated at 25.7/100 (LOW Tier). Behavioral velocity, merchant baselines, and network graph topology are within normal organic bounds. Action 'ALLOW' approved.",
+    "is_fraud_ring": false
+  },
+  "scenario_b_flash_sale": {
+    "scenario": "B. Legitimate Flash Sale Surge",
+    "deterministic_score": 0.0,
+    "investigation_score": 0.0,
+    "deterministic_action": "ALLOW",
+    "investigation_action": "ALLOW",
+    "tools_called": [
+      "get_account_activity"
+    ],
+    "findings": [
+      "Isolated transaction topology with no coordinated multi-account syndicate relationships detected.",
+      "Account Profile: Lifetime spend INR 33,972.77 across 1 transactions."
+    ],
+    "explanation": "Transaction evaluated at 0.0/100 (LOW Tier). Behavioral velocity, merchant baselines, and network graph topology are within normal organic bounds. Action 'ALLOW' approved.",
+    "is_fraud_ring": false
+  },
+  "scenario_c_behavioural_abuse": {
+    "scenario": "C. Individual Payment / Carding Abuse",
+    "deterministic_score": 80.9,
+    "investigation_score": 80.9,
+    "deterministic_action": "STEP_UP_VERIFICATION",
+    "investigation_action": "STEP_UP_VERIFICATION",
+    "tools_called": [
+      "get_transaction_history",
+      "get_account_activity",
+      "get_device_activity"
+    ],
+    "findings": [
+      "Isolated transaction topology with no coordinated multi-account syndicate relationships detected.",
+      "Account Profile: Lifetime spend INR 43.46 across 1 transactions."
+    ],
+    "explanation": "Transaction evaluated at 80.9/100 (HIGH Tier). Elevated risk signals detected including Micro-Transaction Card Testing Pattern. Defensive action 'STEP_UP_VERIFICATION' assigned to protect merchant.",
+    "is_fraud_ring": false
+  },
+  "scenario_d_fraud_ring": {
+    "scenario": "D. Coordinated Fraud Ring Syndicate",
+    "deterministic_score": 68.0,
+    "investigation_score": 68.0,
+    "deterministic_action": "STEP_UP_VERIFICATION",
+    "investigation_action": "STEP_UP_VERIFICATION",
+    "tools_called": [
+      "get_related_entities",
+      "get_graph_signals",
+      "get_device_activity",
+      "get_ip_activity"
+    ],
+    "cluster_id": "cl_a5c2cde9",
+    "cluster_size": 15,
+    "findings": [
+      "Multi-entity fraud ring confirmed in Cluster cl_a5c2cde9 (15 connected entities). Activity indicates coordinated syndicate operation."
+    ],
+    "explanation": "Transaction evaluated at 68.0/100 (HIGH Tier). While individual transaction parameters may appear standard, NetworkX graph analysis identified a coordinated syndicate in Cluster cl_a5c2cde9 (15 linked nodes) with signals: SHARED_CARD_ACROSS_4_ACCOUNTS, DEVICE_FARM_OVER_4_ACCOUNTS. Recommended action 'STEP_UP_VERIFICATION' assigned to protect merchant receivables.",
+    "is_fraud_ring": true
+  },
+  "scenario_e_ambiguous_case": {
+    "scenario": "E. Multi-Entity Ambiguous Anomaly",
+    "deterministic_score": 55.8,
+    "investigation_score": 55.8,
+    "deterministic_action": "MONITOR",
+    "investigation_action": "MONITOR",
+    "tools_called": [
+      "get_transaction_history",
+      "get_account_activity",
+      "get_device_activity",
+      "get_ip_activity"
+    ],
+    "findings": [
+      "Isolated transaction topology with no coordinated multi-account syndicate relationships detected.",
+      "Account Profile: Lifetime spend INR 708.03 across 1 transactions."
+    ],
+    "explanation": "Transaction evaluated at 55.8/100 (MEDIUM Tier). Moderate behavioral anomalies observed. Action 'MONITOR' assigned for continuous monitoring.",
+    "is_fraud_ring": false
+  }
+}

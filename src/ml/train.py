@@ -32,7 +32,7 @@ logger = get_logger("ml_train")
 
 
 def train_models(
-    n_samples: int = 10000,
+    n_samples: int = 50000,
     seed: int = 42,
 ) -> Dict[str, Any]:
     """Generates synthetic dataset, trains XGBoost & Isolation Forest, evaluates and serializes artifacts."""
@@ -50,26 +50,36 @@ def train_models(
     logger.info("Extracted feature matrix: X=%s, y=%s (Fraud/Abuse count: %d)", X.shape, y.shape, int(y.sum()))
 
     # -------------------------------------------------------------
-    # 2. Stratified Train / Validation / Test Split
+    # 2. Strict Entity-Disjoint Train / Validation / Test Split
     # -------------------------------------------------------------
-    # 70% Train, 15% Validation, 15% Test
-    X_train, X_temp, y_train, y_temp = train_test_split(
-        X, y, test_size=0.30, random_state=seed, stratify=y
-    )
-    X_val, X_test, y_val, y_test = train_test_split(
-        X_temp, y_temp, test_size=0.50, random_state=seed, stratify=y_temp
-    )
+    # Split by user_id to guarantee zero entity overlap / leakage between train and test
+    unique_users = np.array(df["user_id"].unique().tolist())
+    train_users, temp_users = train_test_split(unique_users, test_size=0.30, random_state=seed)
+    val_users, test_users = train_test_split(temp_users, test_size=0.50, random_state=seed)
 
-    logger.info("Data Split: Train=%d, Validation=%d, Test=%d", len(X_train), len(X_val), len(X_test))
+    train_mask = df["user_id"].isin(train_users).values
+    val_mask = df["user_id"].isin(val_users).values
+    test_mask = df["user_id"].isin(test_users).values
+
+    X_train, y_train = X[train_mask], y[train_mask]
+    X_val, y_val = X[val_mask], y[val_mask]
+    X_test, y_test = X[test_mask], y[test_mask]
+
+    logger.info("Entity-Disjoint Split: Train=%d, Validation=%d, Test=%d (Zero user overlap)", len(X_train), len(X_val), len(X_test))
 
     # -------------------------------------------------------------
     # 3. Supervised XGBoost Classifier Training
     # -------------------------------------------------------------
     logger.info("Training Supervised XGBoost Classifier...")
+    pos_count = int(y_train.sum())
+    neg_count = len(y_train) - pos_count
+    scale_weight = float(neg_count / max(1, pos_count))
+
     xgb_model = xgb.XGBClassifier(
         n_estimators=150,
         max_depth=5,
         learning_rate=0.08,
+        scale_pos_weight=scale_weight,
         subsample=0.85,
         colsample_bytree=0.85,
         eval_metric="logloss",
@@ -143,9 +153,20 @@ def train_models(
     # 7. Scenario-by-Scenario Evaluation
     # -------------------------------------------------------------
     logger.info("Running Scenario Evaluation across all 6 canonical traffic classes...")
-    scenario_gen = ScenarioGenerator(seed=seed)
-    db = SessionLocal()
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from src.core.database import Base
+    from src.database.init_db import DEFAULT_MERCHANTS
+
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    Base.metadata.create_all(bind=engine)
+    Session = sessionmaker(bind=engine)
+    db = Session()
     repo = Repository(db)
+    for m in DEFAULT_MERCHANTS:
+        repo.get_or_create_merchant(m["id"], m["name"], m["category"], m["risk_category"])
+
+    scenario_gen = ScenarioGenerator(seed=seed)
     calc = FeatureCalculator(repo)
     scorer = UnifiedRiskScorer()
 

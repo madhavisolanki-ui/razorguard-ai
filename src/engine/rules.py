@@ -101,23 +101,27 @@ class RuleEngine:
                 )
             ))
 
-        # -------------------------------------------------------------
-        # 3. Entity Concentration Rules (Farms & Proxies)
-        # -------------------------------------------------------------
-        # Rule: Multiple Distinct Accounts on Single IP
+        # Rule: Multiple Distinct Accounts on Single IP (Excludes verified campus/corporate diverse NATs)
         if features.unique_accounts_per_ip_1h > self.rules_config.concentration.max_unique_accounts_per_ip_1h:
-            results.append(RuleResult(
-                rule_id="R_CONC_ACCOUNTS_ON_IP",
-                rule_name="Suspicious Multi-Account IP Concentration",
-                category="concentration",
-                triggered=True,
-                severity="HIGH",
-                score_impact=30.0,
-                description=(
-                    f"{features.unique_accounts_per_ip_1h} distinct user accounts originated from "
-                    f"IP {features.ip_address} in 1h (threshold: {self.rules_config.concentration.max_unique_accounts_per_ip_1h})."
-                )
-            ))
+            is_campus_or_corporate = (
+                features.unique_devices_per_ip_1h >= 4 and
+                not features.is_datacenter_proxy and
+                features.ip_reputation_score >= 0.70 and
+                features.payment_failure_rate_5m <= 0.20
+            )
+            if not is_campus_or_corporate:
+                results.append(RuleResult(
+                    rule_id="R_CONC_ACCOUNTS_ON_IP",
+                    rule_name="Suspicious Multi-Account IP Concentration",
+                    category="concentration",
+                    triggered=True,
+                    severity="HIGH",
+                    score_impact=30.0,
+                    description=(
+                        f"{features.unique_accounts_per_ip_1h} distinct user accounts originated from "
+                        f"IP {features.ip_address} in 1h (threshold: {self.rules_config.concentration.max_unique_accounts_per_ip_1h})."
+                    )
+                ))
 
         # Rule: Headless Browser / Emulator Signature
         if features.is_headless_device or features.is_emulator_device:

@@ -1,0 +1,74 @@
+{
+  "normal": {
+    "scenario": "normal",
+    "sample_count": 50,
+    "mean_risk_score": 19.2,
+    "median_risk_score": 0.0,
+    "mean_graph_score": 3.0,
+    "fraud_ring_detection_rate": 0.04,
+    "action_distribution": {
+      "RATE_LIMIT": 0.04,
+      "MONITOR": 0.12,
+      "STEP_UP_VERIFICATION": 0.08,
+      "ALLOW": 0.76
+    }
+  },
+  "legitimate_spike": {
+    "scenario": "legitimate_spike",
+    "sample_count": 50,
+    "mean_risk_score": 4.7,
+    "median_risk_score": 0.0,
+    "mean_graph_score": 0.0,
+    "fraud_ring_detection_rate": 0.0,
+    "action_distribution": {
+      "MONITOR": 0.08,
+      "ALLOW": 0.92
+    }
+  },
+  "bot_abuse": {
+    "scenario": "bot_abuse",
+    "sample_count": 50,
+    "mean_risk_score": 99.8,
+    "median_risk_score": 100.0,
+    "mean_graph_score": 10.0,
+    "fraud_ring_detection_rate": 0.0,
+    "action_distribution": {
+      "RATE_LIMIT": 1.0
+    }
+  },
+  "payment_abuse": {
+    "scenario": "payment_abuse",
+    "sample_count": 50,
+    "mean_risk_score": 97.7,
+    "median_risk_score": 100.0,
+    "mean_graph_score": 16.0,
+    "fraud_ring_detection_rate": 0.2,
+    "action_distribution": {
+      "RATE_LIMIT": 0.96,
+      "MONITOR": 0.04
+    }
+  },
+  "coordinated_abuse": {
+    "scenario": "coordinated_abuse",
+    "sample_count": 50,
+    "mean_risk_score": 100.0,
+    "median_risk_score": 100.0,
+    "mean_graph_score": 62.2,
+    "fraud_ring_detection_rate": 0.88,
+    "action_distribution": {
+      "RATE_LIMIT": 1.0
+    }
+  },
+  "fraud_ring": {
+    "scenario": "fraud_ring",
+    "sample_count": 50,
+    "mean_risk_score": 91.6,
+    "median_risk_score": 98.0,
+    "mean_graph_score": 70.5,
+    "fraud_ring_detection_rate": 0.94,
+    "action_distribution": {
+      "RATE_LIMIT": 0.82,
+      "MONITOR": 0.18
+    }
+  }
+}

@@ -1,11 +1,28 @@
-"""Integration Tests for FastAPI Endpoints and All 5 Traffic Scenarios."""
-
 import pytest
 from fastapi.testclient import TestClient
 from src.api.main import app
+from src.core.database import get_db
 from src.generator.scenarios import ScenarioGenerator
+from src.database.init_db import DEFAULT_MERCHANTS
+from src.database.repository import Repository
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def override_db(db_session):
+    """Overrides get_db dependency in FastAPI app for test isolation."""
+    # Seed default merchants in test session
+    repo = Repository(db_session)
+    for m in DEFAULT_MERCHANTS:
+        repo.get_or_create_merchant(m["id"], m["name"], m["category"], m["risk_category"])
+
+    def _get_test_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = _get_test_db
+    yield
+    app.dependency_overrides.clear()
 
 
 def test_health_check():
@@ -17,10 +34,15 @@ def test_health_check():
 
 
 def test_api_ingest_and_get_risk():
+    import uuid
+    uid = uuid.uuid4().hex[:8]
+    event_id = f"evt_api_test_{uid}"
+    user_id = f"usr_api_buyer_{uid}"
+
     # 1. Post valid payment event
     payload = {
-        "event_id": "evt_api_test_01",
-        "user_id": "usr_api_buyer_01",
+        "event_id": event_id,
+        "user_id": user_id,
         "merchant_id": "mer_fashion_trends",
         "amount": 2499.00,
         "currency": "INR",
@@ -32,11 +54,11 @@ def test_api_ingest_and_get_risk():
             "issuer_bank": "HDFC",
         },
         "device": {
-            "id": "dev_api_iphone_01",
+            "id": f"dev_api_iphone_{uid}",
             "is_headless": False,
         },
         "network": {
-            "ip": "49.37.12.88",
+            "ip": f"49.37.12.{int(uid[:2], 16) % 250 + 1}",
             "is_datacenter_proxy": False,
         },
         "context": {
@@ -49,7 +71,7 @@ def test_api_ingest_and_get_risk():
     assert res.status_code == 201
     data = res.json()
 
-    assert data["event_id"] == "evt_api_test_01"
+    assert data["event_id"] == event_id
     assert data["risk_score"] <= 30.0
     assert data["recommended_action"] == "ALLOW"
     assert "transaction_id" in data
@@ -62,7 +84,7 @@ def test_api_ingest_and_get_risk():
     assert get_res.status_code == 200
     stored = get_res.json()
     assert stored["transaction_id"] == tx_id
-    assert stored["user_id"] == "usr_api_buyer_01"
+    assert stored["user_id"] == user_id
     assert stored["composite_risk_score"] == data["risk_score"]
 
 

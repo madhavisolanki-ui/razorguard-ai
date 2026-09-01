@@ -73,6 +73,14 @@ class PaymentEventResponse(BaseModel):
     recommended_action: str
     fraud_probability: Optional[float] = None
     anomaly_score: Optional[float] = None
+    graph_risk_score: Optional[float] = None
+    graph_risk_level: Optional[str] = None
+    cluster_id: Optional[str] = None
+    cluster_size: Optional[int] = None
+    suspicious_entities: List[str] = Field(default_factory=list)
+    graph_signals: List[str] = Field(default_factory=list)
+    is_fraud_ring: bool = False
+    is_legitimate_shared_infra: bool = False
     model_scores: Optional[Dict[str, float]] = None
     primary_rule_triggered: Optional[str] = None
     triggered_rules: List[Dict[str, Any]] = Field(default_factory=list)

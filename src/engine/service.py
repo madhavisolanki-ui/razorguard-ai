@@ -1,4 +1,4 @@
-"""Real-Time Event Processing Service with ML & Behavioural Fusion."""
+"""Real-Time Event Processing Service with ML, Behavioural Fusion, and Graph Syndicates."""
 
 import datetime
 import time
@@ -10,26 +10,48 @@ from src.database.models import Transaction, RiskAssessment
 from src.database.repository import Repository
 from src.features.calculator import FeatureCalculator, FeatureVector
 from src.ml.composite_scorer import UnifiedRiskScorer, UnifiedRiskDecision
+from src.graph.builder import FraudGraphBuilder
+from src.graph.analysis import GraphRiskAnalyzer
 from src.core.logging import get_logger
 
 logger = get_logger("event_service")
 
+# Global singleton in-memory graph builder & analyzer for continuous stream ingestion
+_GLOBAL_GRAPH_BUILDER = FraudGraphBuilder()
+_GLOBAL_GRAPH_ANALYZER = GraphRiskAnalyzer(_GLOBAL_GRAPH_BUILDER.graph)
+
+
+def get_global_graph_builder() -> FraudGraphBuilder:
+    return _GLOBAL_GRAPH_BUILDER
+
+
+def get_global_graph_analyzer() -> GraphRiskAnalyzer:
+    return _GLOBAL_GRAPH_ANALYZER
+
 
 class EventProcessingService:
-    """Orchestrates real-time event ingestion, feature extraction, ML inference, rules, and persistence."""
+    """Orchestrates real-time event ingestion, feature extraction, ML inference,
+    multi-entity graph syndicate detection, rules, and persistence."""
 
-    def __init__(self, db: Session):
+    def __init__(
+        self,
+        db: Session,
+        graph_builder: Optional[FraudGraphBuilder] = None,
+        graph_analyzer: Optional[GraphRiskAnalyzer] = None,
+    ):
         self.db = db
         self.repo = Repository(db)
         self.calculator = FeatureCalculator(self.repo)
         self.unified_scorer = UnifiedRiskScorer()
+        self.graph_builder = graph_builder or _GLOBAL_GRAPH_BUILDER
+        self.graph_analyzer = graph_analyzer or GraphRiskAnalyzer(self.graph_builder.graph)
 
     def process_event(
         self,
         event: Dict[str, Any],
         dry_run: bool = False,
     ) -> Dict[str, Any]:
-        """Processes an incoming payment event through feature extraction, baseline comparison, ML, rules, and scoring."""
+        """Processes an incoming payment event through features, ML, graph syndicates, rules, and scoring."""
         start_time = time.perf_counter()
 
         event_id = event.get("event_id") or f"evt_{uuid.uuid4().hex[:16]}"
@@ -95,18 +117,30 @@ class EventProcessingService:
             )
 
         # -------------------------------------------------------------
-        # 2. Real-Time Feature Calculation & Unified ML Evaluation
+        # 2. Real-Time Feature Calculation & Unified ML + Graph Evaluation
         # -------------------------------------------------------------
+        tx_id = f"tx_{uuid.uuid4().hex[:12]}"
+
+        # Incrementally register entities into graph for real-time neighborhood analysis
+        self.graph_builder.add_event(
+            event=event,
+            transaction_id=tx_id,
+            risk_score=0.0,
+        )
+
         features: FeatureVector = self.calculator.calculate_features(event)
-        decision: UnifiedRiskDecision = self.unified_scorer.evaluate(features)
+        decision: UnifiedRiskDecision = self.unified_scorer.evaluate(
+            features=features,
+            graph_analyzer=self.graph_analyzer,
+        )
 
         elapsed_ms = int((time.perf_counter() - start_time) * 1000)
 
         # -------------------------------------------------------------
         # 3. Persistence (if not dry_run)
         # -------------------------------------------------------------
-        tx_id = f"tx_{uuid.uuid4().hex[:12]}"
         if not dry_run:
+
             tx = self.repo.create_transaction({
                 "id": tx_id,
                 "event_time": datetime.datetime.now(datetime.timezone.utc),
@@ -137,15 +171,15 @@ class EventProcessingService:
                 "xgboost_score": decision.fraud_probability,
                 "iforest_score": decision.anomaly_score,
                 "velocity_score": decision.velocity_anomaly_score,
-                "graph_score": 0.0,
+                "graph_score": decision.graph_risk_score,
                 "primary_rule_triggered": decision.primary_rule_triggered,
                 "fast_action": decision.recommended_action,
                 "latency_ms": elapsed_ms,
             })
 
         logger.debug(
-            "Processed event %s (tx: %s): score=%.1f, level=%s, action=%s, P(fraud)=%.3f in %dms",
-            event_id, tx_id, decision.risk_score, decision.risk_level, decision.recommended_action, decision.fraud_probability, elapsed_ms
+            "Processed event %s (tx: %s): score=%.1f, level=%s, action=%s, graph_score=%.1f in %dms",
+            event_id, tx_id, decision.risk_score, decision.risk_level, decision.recommended_action, decision.graph_risk_score, elapsed_ms
         )
 
         return {
@@ -159,6 +193,14 @@ class EventProcessingService:
             "recommended_action": decision.recommended_action,
             "fraud_probability": decision.fraud_probability,
             "anomaly_score": decision.anomaly_score,
+            "graph_risk_score": decision.graph_risk_score,
+            "graph_risk_level": decision.graph_risk_level,
+            "cluster_id": decision.cluster_id,
+            "cluster_size": decision.cluster_size,
+            "suspicious_entities": decision.suspicious_entities,
+            "graph_signals": decision.graph_signals,
+            "is_fraud_ring": decision.is_fraud_ring,
+            "is_legitimate_shared_infra": decision.is_legitimate_shared_infra,
             "model_scores": decision.model_scores,
             "primary_rule_triggered": decision.primary_rule_triggered,
             "triggered_rules": decision.triggered_rules,

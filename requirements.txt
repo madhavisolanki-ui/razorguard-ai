@@ -28,6 +28,10 @@ shap>=0.45.0
 # Graph Analytics
 networkx>=3.2.1
 
+# Agentic AI & Investigation System
+langgraph>=0.2.0
+google-genai>=0.1.0
+
 # Operational Dashboard & Visualizations
 streamlit>=1.32.0
 plotly>=5.20.0

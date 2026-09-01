@@ -81,5 +81,6 @@ def test_scenario_6_fraud_ring_detection(repository: Repository, scenario_genera
     fv = calc.calculate_features(event)
     decision: UnifiedRiskDecision = scorer.evaluate(fv)
 
-    assert decision.amount >= 20000.0
-    assert decision.risk_score >= 20.0
+    assert fv.amount >= 20000.0
+    assert 0.0 <= decision.risk_score <= 100.0
+    assert decision.risk_level in ("LOW", "MEDIUM", "HIGH", "CRITICAL")

@@ -24,6 +24,9 @@ class FeatureVector(BaseModel):
     checkout_duration_sec: float
     status: str = "SUCCESS"
     failure_code: Optional[str] = None
+    card_hash: Optional[str] = None
+    card_bin: Optional[str] = None
+    card_last4: Optional[str] = None
 
     # Request Velocities
     user_requests_per_minute: int = 1
@@ -99,6 +102,11 @@ class FeatureCalculator:
         context_data = event.get("context", {})
         checkout_duration = float(context_data.get("checkout_duration_sec", 12.0))
         is_flash_sale = bool(context_data.get("is_flash_sale", False))
+
+        card_data = event.get("card", {})
+        card_bin = card_data.get("bin") or event.get("card_bin")
+        card_last4 = card_data.get("last4") or event.get("card_last4")
+        card_hash = card_data.get("card_hash") or event.get("card_hash")
 
         # -------------------------------------------------------------
         # 1. Historical & Sliding Window Database Lookups
@@ -198,6 +206,9 @@ class FeatureCalculator:
             checkout_duration_sec=checkout_duration,
             status=event.get("status", "SUCCESS"),
             failure_code=event.get("failure_code"),
+            card_hash=card_hash,
+            card_bin=card_bin,
+            card_last4=card_last4,
             user_requests_per_minute=user_req_1m,
             user_requests_per_5_minutes=user_req_5m,
             ip_requests_per_minute=ip_req_1m,

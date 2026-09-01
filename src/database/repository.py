@@ -184,6 +184,33 @@ class Repository:
             query = query.filter(Transaction.event_time < before_time)
         return query.order_by(desc(Transaction.event_time)).first()
 
+    def get_user_transactions(self, user_id: str, limit: int = 20) -> List[Transaction]:
+        return (
+            self.db.query(Transaction)
+            .filter(Transaction.user_id == user_id)
+            .order_by(desc(Transaction.event_time))
+            .limit(limit)
+            .all()
+        )
+
+    def get_user_statistics(self, user_id: str) -> Dict[str, Any]:
+        txs = self.db.query(Transaction).filter(Transaction.user_id == user_id).all()
+        total_tx = len(txs)
+        total_amt = sum(t.amount for t in txs)
+        avg_amt = (total_amt / total_tx) if total_tx > 0 else 0.0
+        return {
+            "total_transactions": total_tx,
+            "total_spend": round(total_amt, 2),
+            "avg_amount": round(avg_amt, 2),
+        }
+
+    def get_merchant_recent_stats(self, merchant_id: str, window_seconds: int = 300) -> Dict[str, Any]:
+        count = self.get_merchant_tx_count_in_window(merchant_id, window_seconds)
+        return {"count": count}
+
+    def get_ip_address(self, ip: str) -> Optional[IPAddress]:
+        return self.get_ip(ip)
+
     # -------------------------------------------------------------
     # Sliding Window Queries
     # -------------------------------------------------------------
@@ -192,6 +219,15 @@ class Repository:
         return (
             self.db.query(func.count(Transaction.id))
             .filter(Transaction.user_id == user_id, Transaction.event_time >= cutoff)
+            .scalar()
+            or 0
+        )
+
+    def get_merchant_tx_count_in_window(self, merchant_id: str, window_seconds: int = 300) -> int:
+        cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=window_seconds)
+        return (
+            self.db.query(func.count(Transaction.id))
+            .filter(Transaction.merchant_id == merchant_id, Transaction.event_time >= cutoff)
             .scalar()
             or 0
         )

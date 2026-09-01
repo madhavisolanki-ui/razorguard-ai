@@ -6,6 +6,9 @@ from sqlalchemy.orm import Session
 from src.core.database import get_db
 from src.database.repository import Repository
 from src.engine.service import EventProcessingService
+from src.agent.investigator import RiskInvestigationService
+from src.agent.schemas import InvestigationReport, AuditLogRecord
+from src.agent.audit import get_global_audit_logger
 from src.api.schemas.events import PaymentEventInput, PaymentEventResponse
 from src.api.schemas.risk import RiskAnalysisRequest, RiskAnalysisResponse, StoredRiskAssessmentResponse
 from src.core.logging import get_logger
@@ -103,6 +106,58 @@ def get_risk_assessment_by_tx(
         xgboost_score=assessment.xgboost_score,
         iforest_score=assessment.iforest_score,
         velocity_score=assessment.velocity_score,
+        graph_score=assessment.graph_score,
         primary_rule_triggered=assessment.primary_rule_triggered,
         latency_ms=assessment.latency_ms,
     )
+
+
+@router.post(
+    "/investigate/{transaction_id}",
+    response_model=InvestigationReport,
+    status_code=status.HTTP_200_OK,
+    summary="Trigger LangGraph AI Investigation Agent on a stored transaction",
+    description="Orchestrates a stateful multi-step AI investigation (observe, analyze, investigate, correlate, decide, recommend, explain) over deterministic ML, rules, and NetworkX fraud graph evidence.",
+)
+def investigate_transaction_api(
+    transaction_id: str,
+    analyst_notes: str = None,
+    db: Session = Depends(get_db),
+) -> InvestigationReport:
+    """Invokes the LangGraph Risk Investigation Agent on the requested transaction."""
+    try:
+        service = RiskInvestigationService(db)
+        report = service.investigate_transaction(transaction_id, analyst_notes=analyst_notes)
+        return report
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(ve),
+        )
+    except Exception as e:
+        logger.error("AI Investigation failed for %s: %s", transaction_id, e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Investigation failed: {str(e)}",
+        )
+
+
+@router.get(
+    "/investigate/{investigation_id}/audit",
+    response_model=AuditLogRecord,
+    status_code=status.HTTP_200_OK,
+    summary="Retrieve immutable audit log for an AI investigation",
+)
+def get_investigation_audit_log(
+    investigation_id: str,
+) -> AuditLogRecord:
+    """Retrieves the full execution audit record for a given investigation ID."""
+    audit_logger = get_global_audit_logger()
+    record = audit_logger.get_record(investigation_id)
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Audit record for investigation '{investigation_id}' not found.",
+        )
+    return record
+

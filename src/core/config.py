@@ -53,12 +53,27 @@ class MerchantSpikeConfig(BaseModel):
     flash_sale_min_success_rate: float = 0.75
 
 
+class GraphRuleConfig(BaseModel):
+    max_accounts_per_device: int = 3
+    max_accounts_per_ip: int = 5
+    max_devices_per_account: int = 4
+    max_ips_per_account: int = 5
+    max_shared_card_accounts: int = 2
+    min_ring_cycle_length: int = 3
+    max_ring_cycle_length: int = 6
+    suspicious_cluster_density_threshold: float = 0.40
+    suspicious_cluster_min_size: int = 4
+    graph_window_max_nodes: int = 50000
+    campus_or_corporate_min_entropy: float = 0.70
+
+
 class RulesConfig(BaseModel):
     velocity: VelocityRuleConfig = Field(default_factory=VelocityRuleConfig)
     failure_rates: FailureRuleConfig = Field(default_factory=FailureRuleConfig)
     concentration: ConcentrationRuleConfig = Field(default_factory=ConcentrationRuleConfig)
     patterns: PatternRuleConfig = Field(default_factory=PatternRuleConfig)
     merchant_spike: MerchantSpikeConfig = Field(default_factory=MerchantSpikeConfig)
+    graph: GraphRuleConfig = Field(default_factory=GraphRuleConfig)
 
 
 class Settings(BaseSettings):
@@ -93,10 +108,13 @@ class Settings(BaseSettings):
     # Score > 85.0 -> RATE_LIMIT
 
     # AI Agent Configuration
+    LLM_PROVIDER: str = "gemini"  # "gemini", "openai", "fallback"
     OPENAI_API_KEY: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
-    AGENT_MODEL_NAME: str = "gemini-1.5-flash"
+    AGENT_MODEL_NAME: str = "gemini-2.5-flash"
+    AGENT_TEMPERATURE: float = 0.1
     AGENT_MAX_ITERATIONS: int = 5
+    AGENT_TIMEOUT_SECONDS: float = 8.0
     AGENT_FALLBACK_DETERMINISTIC: bool = True
 
     # Paths
