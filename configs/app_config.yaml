@@ -1,0 +1,68 @@
+# RazorGuard AI Application Configuration
+app:
+  name: "RazorGuard AI"
+  version: "1.0.0"
+  environment: "development"
+  debug: true
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 1
+
+database:
+  url: "sqlite:///./data/razorguard.db"
+  echo_sql: false
+  pool_size: 10
+  max_overflow: 20
+
+# Behavioural Rules & Thresholds Configuration
+rules:
+  velocity:
+    max_user_requests_per_minute: 5
+    max_user_requests_per_5_minutes: 15
+    max_ip_requests_per_minute: 20
+    max_ip_requests_per_5_minutes: 60
+    max_device_requests_per_minute: 10
+    max_device_requests_per_5_minutes: 30
+    min_checkout_duration_sec: 1.5   # Inhuman / bot speed threshold
+  
+  failure_rates:
+    high_ip_failure_ratio_threshold: 0.60
+    high_user_failure_ratio_threshold: 0.50
+    min_transactions_for_failure_ratio: 3
+
+  concentration:
+    max_unique_accounts_per_ip_1h: 4
+    max_unique_devices_per_ip_1h: 5
+    max_unique_ips_per_account_24h: 4
+    max_unique_accounts_per_device_24h: 3
+
+  patterns:
+    max_repeated_amount_ratio_5m: 0.70
+    min_repeated_count_threshold: 4
+    micro_transaction_amount_max: 50.0  # INR micro transaction card testing
+    max_amount_deviation_multiplier: 5.0 # 5x normal average
+
+  merchant_spike:
+    spike_volume_multiplier: 3.0       # 3x baseline constitutes volume surge
+    flash_sale_min_entropy: 0.65       # High IP/device entropy indicates legitimate spike
+    flash_sale_min_success_rate: 0.75  # Genuine flash sales maintain > 75% success
+
+# Risk Scoring Tier Boundaries
+risk_engine:
+  thresholds:
+    allow_max: 30.0
+    monitor_max: 65.0
+    step_up_max: 85.0
+    # > 85.0 -> RATE_LIMIT
+  weights:
+    behavioural_rules: 1.0  # Phase 2 preliminary scoring weight
+    xgboost: 0.40           # Phase 3
+    isolation_forest: 0.20  # Phase 3
+    velocity: 0.20          # Phase 3
+    graph: 0.20             # Phase 4
+
+simulation:
+  default_events_count: 5000
+  events_per_second: 50

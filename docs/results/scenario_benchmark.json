@@ -1,0 +1,82 @@
+{
+  "normal": {
+    "scenario": "normal",
+    "sample_count": 50,
+    "mean_risk_score": 8.4,
+    "median_risk_score": 8.4,
+    "mean_fraud_prob": 0.0,
+    "mean_anomaly_score": 0.304,
+    "action_distribution": {
+      "ALLOW": 1.0
+    },
+    "allow_rate": 1.0,
+    "block_throttle_rate": 0.0
+  },
+  "legitimate_spike": {
+    "scenario": "legitimate_spike",
+    "sample_count": 50,
+    "mean_risk_score": 2.5,
+    "median_risk_score": 0.0,
+    "mean_fraud_prob": 0.0,
+    "mean_anomaly_score": 0.386,
+    "action_distribution": {
+      "ALLOW": 0.92,
+      "MONITOR": 0.08
+    },
+    "allow_rate": 0.92,
+    "block_throttle_rate": 0.0
+  },
+  "bot_abuse": {
+    "scenario": "bot_abuse",
+    "sample_count": 50,
+    "mean_risk_score": 100.0,
+    "median_risk_score": 100.0,
+    "mean_fraud_prob": 0.0,
+    "mean_anomaly_score": 0.433,
+    "action_distribution": {
+      "RATE_LIMIT": 1.0
+    },
+    "allow_rate": 0.0,
+    "block_throttle_rate": 1.0
+  },
+  "payment_abuse": {
+    "scenario": "payment_abuse",
+    "sample_count": 50,
+    "mean_risk_score": 71.8,
+    "median_risk_score": 75.6,
+    "mean_fraud_prob": 0.0,
+    "mean_anomaly_score": 0.391,
+    "action_distribution": {
+      "STEP_UP_VERIFICATION": 0.86,
+      "MONITOR": 0.14
+    },
+    "allow_rate": 0.0,
+    "block_throttle_rate": 0.86
+  },
+  "coordinated_abuse": {
+    "scenario": "coordinated_abuse",
+    "sample_count": 50,
+    "mean_risk_score": 35.9,
+    "median_risk_score": 35.7,
+    "mean_fraud_prob": 0.0,
+    "mean_anomaly_score": 0.4,
+    "action_distribution": {
+      "MONITOR": 1.0
+    },
+    "allow_rate": 0.0,
+    "block_throttle_rate": 0.0
+  },
+  "fraud_ring": {
+    "scenario": "fraud_ring",
+    "sample_count": 50,
+    "mean_risk_score": 9.8,
+    "median_risk_score": 9.7,
+    "mean_fraud_prob": 0.0,
+    "mean_anomaly_score": 0.357,
+    "action_distribution": {
+      "ALLOW": 1.0
+    },
+    "allow_rate": 1.0,
+    "block_throttle_rate": 0.0
+  }
+}

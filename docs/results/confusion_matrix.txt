@@ -1,0 +1,12 @@
+=== CONFUSION MATRIX (Threshold = 0.5) ===
+                     Predicted Legitimate    Predicted Fraud
+Actual Legitimate:   TN = 1210                FP = 0
+Actual Fraud:        FN = 0                   TP = 290
+
+Metrics Summary:
+Precision: 1.0000
+Recall:    1.0000
+F1-Score:  1.0000
+ROC-AUC:   1.0000
+FPR:       0.0000 (0.00%)
+FNR:       0.0000 (0.00%)
